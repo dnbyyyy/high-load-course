@@ -30,7 +30,7 @@ class PaymentAccountsConfig {
     @Value("\${payment.hostPort}")
     lateinit var paymentProviderHostPort: String
 
-    private val allowedAccounts = setOf("acc-19", "acc-20", "acc-21")
+    private val allowedAccounts = setOf("acc-12")
 
     @Bean
     fun accountAdapters(paymentService: EventSourcingService<UUID, PaymentAggregate, PaymentAggregateState>): List<PaymentExternalSystemAdapter> {
@@ -50,5 +50,17 @@ class PaymentAccountsConfig {
                 it.accountName in allowedAccounts
             }.onEach(::println)
             .map { PaymentExternalSystemAdapterImpl(it, paymentService) }
+    }
+
+    @Bean
+    fun jettyServerCustomizer(): JettyServletWebServerFactory {
+        val jettyServletWebServerFactory = JettyServletWebServerFactory()
+
+        val c = JettyServerCustomizer {
+            (it.connectors[0].getConnectionFactory("h2c") as HTTP2CServerConnectionFactory).maxConcurrentStreams = 2_000_000
+        }
+
+        jettyServletWebServerFactory.serverCustomizers.add(c)
+        return jettyServletWebServerFactory
     }
 }
